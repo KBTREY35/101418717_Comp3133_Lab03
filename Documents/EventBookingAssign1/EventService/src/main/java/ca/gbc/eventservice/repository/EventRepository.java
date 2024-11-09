@@ -1,7 +1,9 @@
 package ca.gbc.eventservice.repository;
 
-import ca.gbc.eventservice.entity.Event;
-import org.springframework.data.mongodb.repository.MongoRepository;
+import ca.gbc.eventservice.model.Event;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
-public interface EventRepository extends MongoRepository<Event, String> {
+@Repository
+public interface EventRepository extends JpaRepository<Event, String> {
 }

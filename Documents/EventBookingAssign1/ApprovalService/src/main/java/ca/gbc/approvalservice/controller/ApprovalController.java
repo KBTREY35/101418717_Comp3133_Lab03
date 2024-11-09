@@ -1,8 +1,12 @@
 package ca.gbc.approvalservice.controller;
 
-import ca.gbc.approvalservice.entity.Approval;
+import ca.gbc.approvalservice.dto.ApprovalRequest;
+import ca.gbc.approvalservice.dto.ApprovalResponse;
 import ca.gbc.approvalservice.service.ApprovalService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -10,36 +14,52 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/approvals")
+@RequiredArgsConstructor
 public class ApprovalController {
 
-    @Autowired
-    private ApprovalService approvalService;
+    private final ApprovalService approvalService;
 
     @PostMapping
-    public Approval createApproval(@RequestBody Approval approval) {
-        return approvalService.createApproval(approval);
+    @ResponseStatus(HttpStatus.CREATED)
+    public ResponseEntity<ApprovalResponse> createApproval(@RequestBody ApprovalRequest approvalRequest) {
+        ApprovalResponse createdApproval = approvalService.createApproval(approvalRequest);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Location", "/api/approvals/" + createdApproval.getId());
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .headers(headers)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(createdApproval);
     }
 
     @GetMapping
-    public List<Approval> getAllApprovals() {
+    @ResponseStatus(HttpStatus.OK)
+    public List<ApprovalResponse> getAllApprovals() {
         return approvalService.getAllApprovals();
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Approval> getApprovalById(@PathVariable String id) {
-        Approval approval = approvalService.getApprovalById(id);
-        return approval == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(approval);
+    @GetMapping("/{approvalId}")
+    public ResponseEntity<ApprovalResponse> getApprovalById(@PathVariable("approvalId") Long approvalId) {
+        ApprovalResponse approval = approvalService.getApprovalById(approvalId);
+        return ResponseEntity.ok(approval);
     }
 
-    @PutMapping("/{id}")
-    public Approval updateApproval(@PathVariable String id, @RequestBody Approval approval) {
-        approval.setId(id);
-        return approvalService.updateApproval(approval);
+    @PutMapping("/{approvalId}")
+    public ResponseEntity<Void> updateApproval(@PathVariable("approvalId") Long approvalId,
+                                               @RequestBody ApprovalRequest approvalRequest) {
+        approvalService.updateApproval(approvalId, approvalRequest);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Location", "/api/approvals/" + approvalId);
+
+        return ResponseEntity.noContent().headers(headers).build();
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteApproval(@PathVariable String id) {
-        approvalService.deleteApproval(id);
+    @DeleteMapping("/{approvalId}")
+    public ResponseEntity<Void> deleteApproval(@PathVariable("approvalId") Long approvalId) {
+        approvalService.deleteApproval(approvalId);
         return ResponseEntity.noContent().build();
     }
 }

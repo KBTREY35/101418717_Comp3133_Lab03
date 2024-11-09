@@ -1,69 +1,65 @@
 package ca.gbc.eventservice.controller;
 
-import ca.gbc.eventservice.entity.Event;
+import ca.gbc.eventservice.dto.EventRequest;
+import ca.gbc.eventservice.dto.EventResponse;
 import ca.gbc.eventservice.service.EventService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/events")
+@RequiredArgsConstructor
 public class EventController {
 
-    @Autowired
-    private EventService eventService;
-
-    @Autowired
-    private RestTemplate restTemplate;
+    private final EventService eventService;
 
     @PostMapping
-    public ResponseEntity<Event> createEvent(@RequestBody Event event) {
-        String userId = event.getOrganizerId();
-        ResponseEntity<String> userResponse = restTemplate.getForEntity("http://localhost:8080/api/users/" + userId, String.class);
+    @ResponseStatus(HttpStatus.CREATED)
+    public ResponseEntity<EventResponse> createEvent(@RequestBody EventRequest eventRequest) {
+        EventResponse createdEvent = eventService.createEvent(eventRequest);
 
-        if (userResponse.getStatusCode().is2xxSuccessful()) {
-            String userRole = userResponse.getBody();
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Location", "/api/events/" + createdEvent.id());
 
-            if (isValidRole(userRole)) {
-                Event createdEvent = eventService.createEvent(event);
-                return ResponseEntity.ok(createdEvent);
-            } else {
-                return ResponseEntity.status(403).build();
-            }
-        } else {
-            return ResponseEntity.status(404).build();
-        }
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .headers(headers)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(createdEvent);
     }
 
     @GetMapping
-    public List<Event> getAllEvents() {
+    @ResponseStatus(HttpStatus.OK)
+    public List<EventResponse> getAllEvents() {
         return eventService.getAllEvents();
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Event> getEventById(@PathVariable String id) {
-        Event event = eventService.getEventById(id);
-        return event == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(event);
+    @GetMapping("/{eventId}")
+    public ResponseEntity<EventResponse> getEventById(@PathVariable("eventId") String eventId) {
+        EventResponse event = eventService.getEventById(eventId);
+        return ResponseEntity.ok(event);
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<Event> updateEvent(@PathVariable String id, @RequestBody Event event) {
-        event.setId(id);
-        Event updatedEvent = eventService.updateEvent(event);
-        return updatedEvent != null ? ResponseEntity.ok(updatedEvent) : ResponseEntity.notFound().build();
+    @PutMapping("/{eventId}")
+    public ResponseEntity<Void> updateEvent(@PathVariable("eventId") String eventId,
+                                            @RequestBody EventRequest eventRequest) {
+        eventService.updateEvent(eventId, eventRequest);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Location", "/api/events/" + eventId);
+
+        return ResponseEntity.noContent().headers(headers).build();
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteEvent(@PathVariable String id) {
-        eventService.deleteEvent(id);
+    @DeleteMapping("/{eventId}")
+    public ResponseEntity<Void> deleteEvent(@PathVariable("eventId") String eventId) {
+        eventService.deleteEvent(eventId);
         return ResponseEntity.noContent().build();
-    }
-
-    private boolean isValidRole(String role) {
-        // Implement your role validation logic
-        return role.equals("faculty");
     }
 }

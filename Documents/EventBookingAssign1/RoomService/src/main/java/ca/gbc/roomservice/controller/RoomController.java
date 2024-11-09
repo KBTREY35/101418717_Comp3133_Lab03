@@ -1,36 +1,71 @@
 package ca.gbc.roomservice.controller;
 
-import ca.gbc.roomservice.entity.Room;
+import ca.gbc.roomservice.dto.RoomRequest;
+import ca.gbc.roomservice.dto.RoomResponse;
 import ca.gbc.roomservice.service.RoomService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/rooms")
+@RequestMapping("/api/room")
+@RequiredArgsConstructor
 public class RoomController {
-    @Autowired
-    private RoomService roomService;
 
+    private final RoomService roomService;
+
+    // CREATE
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public ResponseEntity<RoomResponse> createRoom(@RequestBody RoomRequest roomRequest) {
+        RoomResponse createdRoom = roomService.createRoom(roomRequest);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Location", "/api/room/" + createdRoom.id());
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .headers(headers)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(createdRoom);
+    }
+
+    // READ
     @GetMapping
-    public List<Room> getAllRooms() {
+    @ResponseStatus(HttpStatus.OK)
+    public List<RoomResponse> getAllRooms() {
         return roomService.getAllRooms();
     }
 
-    @GetMapping("/{id}")
-    public Optional<Room> getRoomById(@PathVariable Long id) {
-        return roomService.getRoomById(id);
+    // CHECK AVAILABILITY
+    @GetMapping("/{roomId}/availability")
+    public ResponseEntity<Boolean> checkAvailability(@PathVariable("roomId") Long roomId) {
+        return ResponseEntity.ok(roomService.checkAvailability(roomId));
     }
 
-    @PostMapping
-    public Room addRoom(@RequestBody Room room) {
-        return roomService.addRoom(room);
+    // UPDATE
+    @PutMapping("/{roomId}")
+    public ResponseEntity<Void> updateRoom(@PathVariable("roomId") Long roomId,
+                                           @RequestBody RoomRequest roomRequest) {
+
+        Long updatedRoomId = roomService.updateRoom(roomId, roomRequest);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Location", "/api/room/" + updatedRoomId);
+
+        return ResponseEntity.noContent().headers(headers).build();
     }
 
-    @DeleteMapping("/{id}")
-    public void deleteRoom(@PathVariable Long id) {
-        roomService.deleteRoom(id);
+    // DELETE
+    @DeleteMapping("/{roomId}")
+    public ResponseEntity<?> deleteRoom(@PathVariable("roomId") Long roomId) {
+        roomService.deleteRoom(roomId);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
+
 }

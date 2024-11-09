@@ -1,44 +1,69 @@
 package ca.gbc.userservice.controller;
 
-import ca.gbc.userservice.entity.User;
+import ca.gbc.userservice.dto.UserRequest;
+import ca.gbc.userservice.dto.UserResponse;
 import ca.gbc.userservice.service.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api/user")
+@RequiredArgsConstructor
 public class UserController {
-    @Autowired
-    private UserService userService;
 
+    private final UserService userService;
+
+    // CREATE
     @PostMapping
-    public User createUser(@RequestBody User user) {
-        return userService.createUser(user);
+    @ResponseStatus(HttpStatus.CREATED)
+    public ResponseEntity<UserResponse> createUser(@RequestBody UserRequest userRequest) {
+        UserResponse createdUser = userService.createUser(userRequest);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Location", "/api/user/" + createdUser.id());
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .headers(headers)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(createdUser);
     }
 
+    // READ
     @GetMapping
-    public List<User> getAllUsers() {
+    @ResponseStatus(HttpStatus.OK)
+    public List<UserResponse> getAllUsers() {
         return userService.getAllUsers();
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<User> getUserById(@PathVariable Long id) {
-        User user = userService.getUserById(id);
-        return user == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(user);
+    // GET BY ID
+    @GetMapping("/{userId}")
+    public ResponseEntity<UserResponse> getUserById(@PathVariable("userId") Long userId) {
+        return ResponseEntity.ok(userService.getUserById(userId));
     }
 
-    @PutMapping("/{id}")
-    public User updateUser(@PathVariable Long id, @RequestBody User user) {
-        user.setId(id);
-        return userService.updateUser(user);
+    // UPDATE
+    @PutMapping("/{userId}")
+    public ResponseEntity<Void> updateUser(@PathVariable("userId") Long userId,
+                                           @RequestBody UserRequest userRequest) {
+        Long updatedUserId = userService.updateUser(userId, userRequest);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Location", "/api/user/" + updatedUserId);
+
+        return ResponseEntity.noContent().headers(headers).build();
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
-        userService.deleteUser(id);
-        return ResponseEntity.noContent().build();
+    // DELETE
+    @DeleteMapping("/{userId}")
+    public ResponseEntity<?> deleteUser(@PathVariable("userId") Long userId) {
+        userService.deleteUser(userId);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }

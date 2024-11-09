@@ -1,31 +1,14 @@
 package ca.gbc.roomservice.service;
 
-import ca.gbc.roomservice.entity.Room;
-import ca.gbc.roomservice.repository.RoomRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+import ca.gbc.roomservice.dto.RoomRequest;
+import ca.gbc.roomservice.dto.RoomResponse;
 
 import java.util.List;
-import java.util.Optional;
 
-@Service
-public class RoomService {
-    @Autowired
-    private RoomRepository roomRepository;
-
-    public List<Room> getAllRooms() {
-        return roomRepository.findAll();
-    }
-
-    public Optional<Room> getRoomById(Long id) {
-        return roomRepository.findById(id);
-    }
-
-    public Room addRoom(Room room) {
-        return roomRepository.save(room);
-    }
-
-    public void deleteRoom(Long id) {
-        roomRepository.deleteById(id);
-    }
+public interface RoomService {
+    RoomResponse createRoom(RoomRequest roomRequest);
+    List<RoomResponse> getAllRooms();
+    boolean checkAvailability(Long roomId);
+    Long updateRoom(Long roomId, RoomRequest roomRequest);
+    void deleteRoom(Long roomId);
 }

@@ -1,8 +1,9 @@
 package ca.gbc.approvalservice.repository;
 
-import ca.gbc.approvalservice.entity.Approval;
-import org.springframework.data.mongodb.repository.MongoRepository;
+import ca.gbc.approvalservice.model.Approval;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
-public interface ApprovalRepository extends MongoRepository<Approval, String> {
-
+@Repository
+public interface ApprovalRepository extends JpaRepository<Approval, Long> {
 }

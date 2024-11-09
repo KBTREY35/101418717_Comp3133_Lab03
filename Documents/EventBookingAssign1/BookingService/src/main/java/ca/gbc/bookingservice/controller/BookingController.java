@@ -1,67 +1,65 @@
 package ca.gbc.bookingservice.controller;
 
-import ca.gbc.bookingservice.entity.Booking;
+import ca.gbc.bookingservice.dto.BookingRequest;
+import ca.gbc.bookingservice.dto.BookingResponse;
 import ca.gbc.bookingservice.service.BookingService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/bookings")
+@RequiredArgsConstructor
 public class BookingController {
-    @Autowired
-    private BookingService bookingService;
 
-    @Autowired
-    private RestTemplate restTemplate;
+    private final BookingService bookingService;
 
     @PostMapping
-    public ResponseEntity<Booking> createBooking(@RequestBody Booking booking) {
-        // Call RoomService to check availability
-        ResponseEntity<Boolean> response = restTemplate.getForEntity(
-                "http://localhost:8082/api/rooms/available?roomId=" + booking.getRoomId(), Boolean.class
-        );
+    @ResponseStatus(HttpStatus.CREATED)
+    public ResponseEntity<BookingResponse> createBooking(@RequestBody BookingRequest bookingRequest) {
+        BookingResponse createdBooking = bookingService.createBooking(bookingRequest);
 
-        if (Boolean.TRUE.equals(response.getBody())) {
-            Booking createdBooking = bookingService.createBooking(booking);
-            return ResponseEntity.ok(createdBooking);
-        } else {
-            return ResponseEntity.status(400).body(null);
-        }
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Location", "/api/bookings/" + createdBooking.id());
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .headers(headers)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(createdBooking);
     }
 
     @GetMapping
-    public List<Booking> getAllBookings() {
+    @ResponseStatus(HttpStatus.OK)
+    public List<BookingResponse> getAllBookings() {
         return bookingService.getAllBookings();
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Booking> getBookingById(@PathVariable String id) {
-        Optional<Booking> booking = bookingService.getBookingById(id);
-        return booking.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+    @GetMapping("/{bookingId}")
+    public ResponseEntity<BookingResponse> getBookingById(@PathVariable("bookingId") String bookingId) {
+        BookingResponse booking = bookingService.getBookingById(bookingId);
+        return ResponseEntity.ok(booking);
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<Booking> updateBooking(@PathVariable String id, @RequestBody Booking booking) {
-        if (bookingService.getBookingById(id).isPresent()) {
-            Booking updatedBooking = bookingService.updateBooking(id, booking);
-            return ResponseEntity.ok(updatedBooking);
-        } else {
-            return ResponseEntity.notFound().build();
-        }
+    @PutMapping("/{bookingId}")
+    public ResponseEntity<Void> updateBooking(@PathVariable("bookingId") String bookingId,
+                                              @RequestBody BookingRequest bookingRequest) {
+        bookingService.updateBooking(bookingId, bookingRequest);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Location", "/api/bookings/" + bookingId);
+
+        return ResponseEntity.noContent().headers(headers).build();
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteBooking(@PathVariable String id) {
-        if (bookingService.getBookingById(id).isPresent()) {
-            bookingService.deleteBooking(id);
-            return ResponseEntity.noContent().build();
-        } else {
-            return ResponseEntity.notFound().build();
-        }
+    @DeleteMapping("/{bookingId}")
+    public ResponseEntity<Void> deleteBooking(@PathVariable("bookingId") String bookingId) {
+        bookingService.deleteBooking(bookingId);
+        return ResponseEntity.noContent().build();
     }
 }
